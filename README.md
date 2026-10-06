@@ -1,41 +1,42 @@
-# JARVIS Assistant
+# JARVIS AI
 
-A browser-based JARVIS-style personal AI assistant MVP.
+JARVIS is a browser-based personal AI assistant built around **GitHub + Supabase**.
 
-## Included
+## Architecture
+
+- GitHub: source code and version control
+- GitHub Pages: static website hosting
+- Supabase Auth: user identity
+- Supabase Postgres + RLS: long-term memory
+- Supabase Edge Functions: secure AI backend
+- OpenAI Responses API: AI responses
+
+## Supabase setup
+
+1. Create a Supabase project.
+2. Enable Anonymous Sign-Ins in Auth for this MVP.
+3. Run `supabase/schema.sql` in the SQL Editor.
+4. Deploy `supabase/functions/chat/index.ts` as the `chat` Edge Function.
+5. Add `OPENAI_API_KEY` to the Edge Function secrets.
+6. Optionally set `OPENAI_MODEL`; the default is `gpt-5.6-luna`.
+
+## GitHub Pages
+
+Enable **Settings → Pages → Source: GitHub Actions**.
+
+The workflow in `.github/workflows/pages.yml` deploys the website whenever `main` changes.
+
+## Browser configuration
+
+After the Supabase project exists, put its URL and publishable key in `config.js`. A publishable key is intended for browser code; never put your Supabase secret key or OpenAI API key there.
+
+## Current MVP
 
 - JARVIS command-center UI
-- Chat interface
+- Chat
 - Browser voice input
-- Local browser memory for the website demo
-- Server-side OpenAI Responses API adapter at /api/chat
-- Supabase + pgvector schema for the persistent-memory upgrade
-- Vercel configuration
+- Local fallback mode
+- Supabase-backed memory
+- Supabase Edge Function AI adapter
 
-## Run locally
-
-1. Copy `.env.example` to `.env`.
-2. Put your OpenAI API key in `OPENAI_API_KEY`.
-3. Run:
-
-```bash
-npm run dev
-```
-
-4. Open http://localhost:3000
-
-The site also works in demo mode without an API key.
-
-## Deploy
-
-The root `index.html` is the browser website. `api/chat.js` is a Vercel serverless route for the live AI API. Add `OPENAI_API_KEY` as a Vercel environment variable before enabling live AI.
-
-Do not put service-role keys or OpenAI secrets in browser code.
-
-## Next layers
-
-1. Supabase Auth + persistent, user-scoped memory
-2. pgvector semantic memory
-3. web search
-4. browser automation
-5. permissioned Windows PC control
+Next: web search, browser automation, then permissioned PC control.
