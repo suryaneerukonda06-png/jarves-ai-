@@ -218,6 +218,24 @@ main{min-width:0;display:flex;flex-direction:column}
 <script>window.JARVIS_CONFIG=window.JARVIS_CONFIG||{supabaseUrl:"https://lgfhywtphebtzntidhof.supabase.co",supabasePublishableKey:"sb_publishable_dM6YhGhb3nqajlKMFEN2Iw_cKZ9Nbvs",edgeFunction:"chat"};</script><script src="./config.js?v=19"></script>
 <script>
 const $=id=>document.getElementById(id),cfg=window.JARVIS_CONFIG||{};
+$('status').textContent='Connecting…';
+$('mode').textContent='Connecting to Supabase…';
+window.addEventListener('error',e=>{
+  if(!session){
+    $('status').textContent='Setup needed';
+    $('dbState').textContent='JavaScript error: '+(e.message||'Unknown error');
+    $('hudLink').textContent='OFFLINE';
+  }
+});
+window.addEventListener('unhandledrejection',e=>{
+  if(!session){
+    const msg=e.reason?.message||String(e.reason||'Unhandled promise rejection');
+    $('status').textContent='Setup needed';
+    $('dbState').textContent='Runtime error: '+msg;
+    $('hudLink').textContent='OFFLINE';
+  }
+});
+
 let history=JSON.parse(localStorage.getItem('jarvis-history')||'[]'),
     memories=JSON.parse(localStorage.getItem('jarvis-memories')||'[]'),
     sb=null,session=null,uiState='idle',pulse=0;
@@ -313,7 +331,12 @@ function drawSphere(t){
 addEventListener('resize',resizeSphere);resizeSphere();requestAnimationFrame(drawSphere);
 
 async function bootSupabase(){
-  if(!cfg.supabaseUrl||!cfg.supabasePublishableKey)return;
+  if(!cfg.supabaseUrl||!cfg.supabasePublishableKey){
+    $('status').textContent='Setup needed';
+    $('dbState').textContent='Supabase config missing at runtime.';
+    $('hudLink').textContent='OFFLINE';
+    return;
+  }
   try{
     let createClient=window.supabase?.createClient;
     if(!createClient){
