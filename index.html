@@ -312,7 +312,25 @@ function drawSphere(t){
 }
 addEventListener('resize',resizeSphere);resizeSphere();requestAnimationFrame(drawSphere);
 
-if(cfg.supabaseUrl&&cfg.supabasePublishableKey){try{sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);initSupabase()}catch(e){console.error(e)}}
+async function bootSupabase(){
+  if(!cfg.supabaseUrl||!cfg.supabasePublishableKey)return;
+  try{
+    let createClient=window.supabase?.createClient;
+    if(!createClient){
+      const mod=await import('https://esm.sh/@supabase/supabase-js@2');
+      createClient=mod.createClient;
+    }
+    if(!createClient)throw new Error('Supabase SDK failed to load.');
+    sb=createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
+    await initSupabase();
+  }catch(e){
+    console.error('Supabase boot failed:',e);
+    $('status').textContent='Setup needed';
+    $('dbState').textContent=e.message||'Supabase SDK failed to load';
+    $('hudLink').textContent='OFFLINE';
+  }
+}
+bootSupabase();
 async function initSupabase(){
   try{
     const s=await sb.auth.getSession();session=s.data.session||null;
