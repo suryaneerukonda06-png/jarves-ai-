@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<meta name="theme-color" content="#05070b"><title>JARVIS — Personal AI</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#05070b;--panel:rgba(10,14,22,.78);--line:rgba(132,167,202,.18);
+  --text:#eff7ff;--muted:#8291a6;--cyan:#5de7ff;--blue:#6ea7ff;--violet:#9a8cff;
+  --glow:rgba(93,231,255,.32);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:
+    radial-gradient(circle at 50% 35%,rgba(34,72,109,.18),transparent 34%),
+    radial-gradient(circle at 85% 0%,rgba(74,75,148,.14),transparent 25%),
+    #05070b;
+  color:var(--text);
+  font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;
+  overflow:hidden;
+}
+button,textarea{font:inherit}
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh}
+.side{
+  border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(7,10,16,.94),rgba(4,6,10,.86));backdrop-filter:blur(18px);z-index:3
+}
+.brand{display:flex;gap:11px;align-items:center;margin-bottom:20px}
+.orb{
+  width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid rgba(93,231,255,.45);color:var(--cyan);font-weight:800;
+  box-shadow:0 0 28px rgba(93,231,255,.16),inset 0 0 18px rgba(93,231,255,.06)
+}
+.brand strong{letter-spacing:.18em}.muted{color:var(--muted);font-size:12px}
+.new,.nav,.ghost{
+  border:1px solid var(--line);background:rgba(12,18,28,.72);color:var(--text);
+  border-radius:11px;padding:10px 12px;cursor:pointer;transition:.18s ease
+}
+.new{text-align:left}.nav{border-color:transparent;background:transparent;text-align:left;margin-top:5px}
+.nav.active,.nav:hover,.new:hover,.ghost:hover{background:rgba(26,38,54,.75);border-color:rgba(100,150,200,.28)}
+.status{margin-top:auto;color:var(--muted);font-size:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5df09e;margin-right:7px;box-shadow:0 0 10px #5df09e}
+main{min-width:0;display:flex;flex-direction:column}
+.top{
+  height:64px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;
+  padding:0 22px;background:rgba(4,6,10,.58);backdrop-filter:blur(14px);z-index:2
+}
+.eyebrow{font-size:9px;letter-spacing:.26em;color:#6f8098}.title{font-size:17px;font-weight:700}
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{flex:1;overflow:auto;padding:20px 4vw 24px;scrollbar-width:thin}
+.scroll::-webkit-scrollbar{width:7px}.scroll::-webkit-scrollbar-thumb{background:#1a2735;border-radius:8px}
+
+.sphereStage{
+  position:relative;max-width:760px;margin:0 auto 18px;height:min(52vh,500px);min-height:330px;
+  display:grid;place-items:center;isolation:isolate
+}
+.sphereStage:before{
+  content:"";position:absolute;inset:10% 8%;border-radius:50%;
+  background:radial-gradient(circle,rgba(74,157,255,.12),rgba(74,157,255,.03) 34%,transparent 70%);
+  filter:blur(22px);opacity:.9;animation:pulseField 4.8s ease-in-out infinite
+}
+.sphereStage:after{
+  content:"";position:absolute;width:62%;height:10%;bottom:6%;left:19%;
+  background:radial-gradient(ellipse,rgba(0,0,0,.9),transparent 72%);filter:blur(8px);z-index:-1
+}
+#sphereCanvas{width:min(620px,88vw);height:min(620px,88vw);max-height:100%;display:block}
+.sphereOverlay{position:absolute;inset:0;pointer-events:none}
+.ring{
+  position:absolute;left:50%;top:50%;border:1px solid rgba(102,190,255,.16);border-radius:50%;
+  transform:translate(-50%,-50%);box-shadow:0 0 26px rgba(76,157,255,.05) inset
+}
+.r1{width:44%;aspect-ratio:1;animation:spin 18s linear infinite}
+.r2{width:58%;aspect-ratio:1;border-style:dashed;opacity:.45;animation:spinReverse 26s linear infinite}
+.r3{width:73%;aspect-ratio:1;opacity:.22;animation:spin 38s linear infinite}
+.r4{width:87%;aspect-ratio:1;opacity:.12}
+.scan{
+  position:absolute;left:50%;top:50%;width:74%;height:74%;transform:translate(-50%,-50%);
+  border-radius:50%;overflow:hidden;opacity:.16
+}
+.scan:before{
+  content:"";position:absolute;left:0;right:0;top:-20%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  box-shadow:0 0 16px var(--cyan);animation:scan 3.2s linear infinite
+}
+.sphereHUD{position:absolute;inset:10% 5%;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+.hudTag{
+  padding:7px 10px;border:1px solid rgba(104,167,223,.2);background:rgba(7,12,19,.5);
+  border-radius:9px;color:#91a7be;font-size:9px;letter-spacing:.17em;text-transform:uppercase;backdrop-filter:blur(10px)
+}
+.hudTag b{color:#dbeeff;font-weight:650}
+.stateBadge{
+  position:absolute;left:50%;bottom:7%;transform:translateX(-50%);
+  padding:7px 12px;border:1px solid rgba(104,167,223,.2);background:rgba(7,12,19,.62);
+  border-radius:999px;color:#91a7be;font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  backdrop-filter:blur(10px);box-shadow:0 0 22px rgba(63,163,255,.08)
+}
+.stateBadge strong{color:#dffbff}
+.sphereStage.listening .stateBadge{border-color:rgba(93,231,255,.38);box-shadow:0 0 30px rgba(93,231,255,.16)}
+.sphereStage.thinking .stateBadge{border-color:rgba(142,140,255,.38);box-shadow:0 0 30px rgba(142,140,255,.16)}
+.sphereStage.speaking .stateBadge{border-color:rgba(110,167,255,.38);box-shadow:0 0 30px rgba(110,167,255,.16)}
+.listening .r1{animation-duration:6s}.thinking .r1{animation-duration:3s}.speaking .r1{animation-duration:4s}
+.listening .r2{animation-duration:8s}.thinking .r2{animation-duration:7s}.speaking .r2{animation-duration:10s}
+
+.welcome{text-align:center;max-width:760px;margin:-6px auto 22px}
+.welcome h1{font-size:30px;letter-spacing:-.02em;margin:0 0 5px}
+.welcome p{color:var(--muted);max-width:620px;margin:0 auto 18px}
+.start{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.start button{
+  border:1px solid var(--line);background:rgba(11,17,26,.72);color:#b9c9da;border-radius:12px;padding:11px;text-align:left;
+  cursor:pointer;transition:.18s ease;backdrop-filter:blur(8px)
+}
+.start button:hover{transform:translateY(-2px);border-color:rgba(93,231,255,.25);box-shadow:0 10px 30px rgba(0,0,0,.22)}
+.messages{max-width:900px;margin:0 auto;width:100%}
+.msg{margin-bottom:15px;animation:rise .24s ease both}
+.label{font-size:9px;color:#6f8098;letter-spacing:.16em;margin:0 0 5px 4px}
+.bubble{border:1px solid var(--line);border-radius:15px;padding:12px 15px;white-space:pre-wrap;background:rgba(11,17,26,.78);backdrop-filter:blur(10px)}
+.user{display:flex;justify-content:flex-end}.user .bubble{background:rgba(15,42,71,.72);border-color:rgba(65,132,196,.28);max-width:80%}
+.assistant .bubble{max-width:88%;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+.composerWrap{
+  border-top:1px solid var(--line);padding:10px 4vw 14px;background:rgba(4,7,11,.83);backdrop-filter:blur(16px)
+}
+.meta,.hint{text-align:center;color:#6f8098;font-size:10px}.meta{margin-bottom:4px}
+.composer{
+  max-width:900px;margin:6px auto;display:flex;gap:8px;align-items:flex-end;
+  border:1px solid rgba(103,147,187,.24);background:rgba(8,13,20,.86);border-radius:15px;padding:7px;
+  box-shadow:0 0 30px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.02)
+}
+.composer:focus-within{border-color:rgba(93,231,255,.32);box-shadow:0 0 30px rgba(93,231,255,.07)}
+.composer textarea{flex:1;min-height:42px;max-height:180px;resize:none;background:transparent;border:0;outline:0;color:var(--text);padding:10px}
+.icon,.send{height:42px;border-radius:10px;cursor:pointer}.icon{width:42px;border:1px solid var(--line);background:#0e1721;color:var(--cyan)}
+.send{border:0;padding:0 16px;background:linear-gradient(135deg,#70eff0,#6c9fff);color:#061016;font-weight:800}.send:disabled{opacity:.55}
+.panel{padding:26px 4vw}.card{border:1px solid var(--line);background:rgba(10,16,24,.72);border-radius:14px;padding:15px;margin-bottom:10px}.memoryRow{display:flex;justify-content:space-between;gap:15px}
+.voiceOn,.voiceModeOn{color:#aefaff!important;border-color:rgba(93,231,255,.34)!important;box-shadow:0 0 18px rgba(93,231,255,.08)}
+.hidden{display:none}.danger{color:#ff9f9f}.toast{position:fixed;right:18px;bottom:18px;background:#0d1722;border:1px solid #25374b;padding:10px 13px;border-radius:10px;opacity:0;transform:translateY(8px);transition:.2s;z-index:9}.toast.show{opacity:1;transform:none}
+
+@keyframes pulseField{0%,100%{transform:scale(.92);opacity:.55}50%{transform:scale(1.08);opacity:1}}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes spinReverse{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+@keyframes scan{to{top:115%}}
+@keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+@media(max-width:800px){
+  .app{grid-template-columns:1fr}.side{display:none}.top{padding:0 14px}.scroll,.composerWrap,.panel{padding-left:14px;padding-right:14px}
+  .sphereStage{height:min(48vh,420px);min-height:280px;margin-bottom:12px}.sphereHUD{inset:7% 2%}.start{grid-template-columns:1fr}
+  .welcome h1{font-size:25px}.user .bubble,.assistant .bubble{max-width:95%}.sphereStage:after{bottom:2%}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand"><div class="orb">J</div><div><strong>JARVIS</strong><div class="muted">Personal AI system</div></div></div>
+  <button class="new" id="newChat">+ New conversation</button>
+  <button class="nav active" data-view="chat">⌁ &nbsp; Chat</button>
+  <button class="nav" data-view="memory">◉ &nbsp; Memory</button>
+  <button class="nav" data-view="system">◌ &nbsp; System</button>
+  <div class="status"><span class="dot"></span><span id="status">Local mode</span></div>
+</aside>
+<main>
+<header class="top">
+  <div><div class="eyebrow">PERSONAL AI</div><div class="title" id="title">Command Center</div></div>
+  <div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="voiceModeToggle" type="button">🎧 Voice Mode</button><button class="ghost" id="voiceToggle" type="button">🔊 Voice ON</button><button class="ghost" id="clear">Clear</button></div>
+</header>
+<section class="view" id="chatView">
+<div class="scroll" id="scroll">
+  <div class="sphereStage" id="sphereStage">
+    <canvas id="sphereCanvas" aria-label="JARVIS digital sphere"></canvas>
+    <div class="sphereOverlay">
+      <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div><div class="scan"></div>
+      <div class="sphereHUD">
+        <div class="hudTag">CORE <b>ONLINE</b></div>
+        <div class="hudTag">AI LINK <b id="hudLink">READY</b></div>
+      </div>
+      <div class="stateBadge">STATUS <strong id="sphereState">STANDBY</strong><span id="voiceBadge" style="display:none;margin-left:8px;color:#86f5ff">• VOICE MODE</span></div>
+    </div>
+  </div>
+
+  <div class="welcome" id="welcome">
+    <h1>Good to see you.</h1>
+    <p>Speak or type. JARVIS can remember details you choose to save.</p>
+    <div class="start">
+      <button>Help me plan my AI project</button>
+      <button>Remember that I'm building JARVIS</button>
+      <button>What should we build next?</button>
+    </div>
+  </div>
+  <div class="messages" id="messages"></div>
+</div>
+<div class="composerWrap">
+  <div class="meta" id="mode">Text mode • local memory ready</div>
+  <form class="composer" id="form">
+    <button class="icon" id="mic" type="button">🎙</button>
+    <textarea id="input" placeholder="Ask JARVIS anything…"></textarea>
+    <button class="send" id="send">Send</button>
+  </form>
+  <div class="hint">Enter to send · Shift+Enter for a new line</div>
+</div>
+</section>
+
+<section class="view hidden" id="memoryView">
+  <div class="panel"><h2>Long-term memory</h2><p class="muted">Memories are stored in Supabase once the project is connected.</p><button class="ghost danger" id="clearMemory">Clear all</button><div id="memoryList" style="margin-top:15px"></div></div>
+</section>
+
+<section class="view hidden" id="systemView">
+  <div class="panel">
+    <div class="card"><b>Website</b><div class="muted">GitHub Pages-ready static app</div></div>
+    <div class="card"><b>Database</b><div class="muted" id="dbState">Not connected</div></div>
+    <div class="card"><b>AI</b><div class="muted">Supabase Edge Function + OpenRouter + Tool Calling</div></div>
+    <div class="card"><b>PC control</b><div class="muted">Not connected yet — will be added later with explicit permissions.</div></div>
+  </div>
+</section>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>window.JARVIS_CONFIG=window.JARVIS_CONFIG||{supabaseUrl:"https://lgfhywtphebtzntidhof.supabase.co",supabasePublishableKey:"sb_publishable_dM6YhGhb3nqajlKMFEN2Iw_cKZ9Nbvs",edgeFunction:"chat"};</script><script src="../config.js?v=24"></script><script>
+document.addEventListener('DOMContentLoaded',()=>{const s=document.getElementById('status');if(s)s.textContent='BOOT SCRIPT OK';});
+window.addEventListener('error',e=>{
+  const s=document.getElementById('status'),d=document.getElementById('dbState');
+  if(s)s.textContent='JS ERROR';
+  if(d)d.textContent='Preflight: '+(e.message||'Script failed to load')+(e.filename?' @ '+e.filename:'');
+});
+window.addEventListener('unhandledrejection',e=>{
+  const s=document.getElementById('status'),d=document.getElementById('dbState');
+  if(s)s.textContent='PROMISE ERROR';
+  if(d)d.textContent='Preflight: '+(e.reason?.message||String(e.reason||'Unhandled rejection'));
+});
+</script>
+<script>
+const $=id=>document.getElementById(id),cfg=window.JARVIS_CONFIG||{};
+$('status').textContent='Connecting…';
+$('mode').textContent='Connecting to Supabase…';
+window.addEventListener('error',e=>{
+  if(!session){
+    $('status').textContent='Setup needed';
+    $('dbState').textContent='JavaScript error: '+(e.message||'Unknown error');
+    $('hudLink').textContent='OFFLINE';
+  }
+});
+window.addEventListener('unhandledrejection',e=>{
+  if(!session){
+    const msg=e.reason?.message||String(e.reason||'Unhandled promise rejection');
+    $('status').textContent='Setup needed';
+    $('dbState').textContent='Runtime error: '+msg;
+    $('hudLink').textContent='OFFLINE';
+  }
+});
+
+let history=JSON.parse(localStorage.getItem('jarvis-history')||'[]'),
+    memories=JSON.parse(localStorage.getItem('jarvis-memories')||'[]'),
+    sb=null,session=null,uiState='idle',pulse=0;
+
+const stage=$('sphereStage'),canvas=$('sphereCanvas'),ctx=canvas.getContext('2d');
+let points=[],width=0,height=0,dpr=1,lastFrame=0;
+
+function setSphereState(state){
+  uiState=state;stage.classList.remove('listening','thinking','speaking');if(state!=='idle')stage.classList.add(state);
+  const label={idle:'STANDBY',listening:'LISTENING',thinking:'THINKING',speaking:'RESPONDING'}[state]||'STANDBY';
+  $('sphereState').textContent=label;
+  $('mode').textContent=state==='listening'?'Listening…':state==='thinking'?'JARVIS is thinking…':state==='speaking'?'JARVIS is responding…':(sb&&session?'Text mode • cloud memory ready':'Text mode • local memory ready');
+}
+
+const synth=window.speechSynthesis;
+let voiceEnabled=localStorage.getItem('jarvis-voice')!=='off';
+let jarvisVoices=[];
+function loadVoices(){jarvisVoices=synth?.getVoices?.()||[]}
+loadVoices();
+if('onvoiceschanged' in synth)synth.onvoiceschanged=loadVoices;
+function pickJarvisVoice(){
+  const preferred=['Microsoft David','Microsoft Mark','Google UK English Male','Daniel','Alex','Google US English'];
+  return preferred.map(name=>jarvisVoices.find(v=>v.name.includes(name))).find(Boolean)
+    || jarvisVoices.find(v=>/^en(-|_)/i.test(v.lang)&&/male|david|mark|daniel|alex/i.test(v.name))
+    || jarvisVoices.find(v=>/^en(-|_)/i.test(v.lang))
+    || jarvisVoices[0];
+}
+function speakJarvis(text){
+  if(!voiceEnabled||!synth||!text)return;
+  synth.cancel();
+  const clean=String(text).replace(/[#*_~`]/g,'').replace(/https?:\\/\\/\\S+/g,'').trim();
+  if(!clean)return;
+  const u=new SpeechSynthesisUtterance(clean);
+  u.voice=pickJarvisVoice();
+  u.lang=u.voice?.lang||'en-US';
+  u.rate=.94;
+  u.pitch=.78;
+  u.volume=1;
+  u.onstart=()=>setSphereState('speaking');
+  u.onend=()=>{if(uiState==='speaking')setSphereState('idle');if(voiceMode)setTimeout(startVoiceListening,350)};
+  u.onerror=()=>{if(uiState==='speaking')setSphereState('idle');if(voiceMode)setTimeout(startVoiceListening,500)};
+  synth.speak(u);
+}
+function syncVoiceButton(){
+  const b=$('voiceToggle');
+  b.textContent=voiceEnabled?'🔊 Voice ON':'🔇 Voice OFF';
+  b.classList.toggle('voiceOn',voiceEnabled);
+}
+
+function buildPoints(){
+  points=[];const count=innerWidth<800?430:720, golden=Math.PI*(3-Math.sqrt(5));
+  for(let i=0;i<count;i++){
+    const y=1-(i/(count-1))*2, r=Math.sqrt(1-y*y), a=golden*i;
+    points.push({x:Math.cos(a)*r,y,z:Math.sin(a)*r,phase:Math.random()*Math.PI*2,size:.35+Math.random()*.85});
+  }
+}
+function resizeSphere(){
+  const rect=canvas.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);width=Math.max(240,rect.width);height=Math.max(240,rect.height);
+  canvas.width=Math.floor(width*dpr);canvas.height=Math.floor(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);buildPoints();
+}
+function drawSphere(t){
+  const dt=Math.min(.04,(t-lastFrame)/1000||0);lastFrame=t;pulse+=dt;
+  ctx.clearRect(0,0,width,height);
+  const cx=width/2,cy=height/2,rad=Math.min(width,height)*.31;
+  const speed=uiState==='thinking'?1.35:uiState==='listening'?0.65:0.34;
+  const rot=t*.00045*speed, breathe=1+Math.sin(pulse*1.6)*.025+(uiState==='thinking'?Math.sin(pulse*7)*.018:0);
+  const power=uiState==='listening'?1.18:uiState==='thinking'?1.45:uiState==='speaking'?1.3:0.9;
+  const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,rad*1.8);
+  glow.addColorStop(0,'rgba(111,239,240,.20)');glow.addColorStop(.28,'rgba(71,149,255,.08)');glow.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=glow;ctx.beginPath();ctx.arc(cx,cy,rad*1.8,0,Math.PI*2);ctx.fill();
+
+  const sorted=[];
+  for(const p of points){
+    const x1=p.x*Math.cos(rot)-p.z*Math.sin(rot), z1=p.x*Math.sin(rot)+p.z*Math.cos(rot);
+    const y1=p.y;
+    const scale=rad*breathe*(.98+(Math.sin(p.phase+pulse*1.9)*.018));
+    const sx=cx+x1*scale, sy=cy+y1*scale;
+    const depth=(z1+1)/2, twinkle=.62+.38*Math.sin(p.phase+pulse*2.4);
+    sorted.push({sx,sy,depth,alpha:(.12+.68*depth)*twinkle*power,size:p.size*(.65+.65*depth)});
+  }
+  sorted.sort((a,b)=>a.depth-b.depth);
+  for(const q of sorted){
+    const a=Math.max(.035,Math.min(.9,q.alpha));
+    ctx.beginPath();ctx.arc(q.sx,q.sy,q.size+(q.depth>.72?.4:0),0,Math.PI*2);
+    ctx.fillStyle='rgba(117,220,255,'+a.toFixed(3)+')';ctx.shadowBlur=q.depth>.74?7:0;ctx.shadowColor='rgba(93,231,255,.7)';ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  const core=ctx.createRadialGradient(cx,cy,0,cx,cy,rad*.42);
+  core.addColorStop(0,'rgba(224,255,255,.95)');core.addColorStop(.13,'rgba(121,245,239,.88)');core.addColorStop(.38,'rgba(91,181,255,.28)');core.addColorStop(1,'rgba(17,30,48,0)');
+  ctx.fillStyle=core;ctx.beginPath();ctx.arc(cx,cy,rad*.42,0,Math.PI*2);ctx.fill();
+  requestAnimationFrame(drawSphere);
+}
+addEventListener('resize',resizeSphere);resizeSphere();requestAnimationFrame(drawSphere);
+
+async function bootSupabase(){
+  if(!cfg.supabaseUrl||!cfg.supabasePublishableKey){
+    $('status').textContent='Setup needed';
+    $('dbState').textContent='Supabase config missing at runtime.';
+    $('hudLink').textContent='OFFLINE';
+    return;
+  }
+  try{
+    let createClient=window.supabase?.createClient;
+    if(!createClient)throw new Error('Supabase browser SDK did not load.');
+    sb=createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
+    await initSupabase();
+  }catch(e){
+    console.error('Supabase boot failed:',e);
+    $('status').textContent='Setup needed';
+    $('dbState').textContent=e.message||'Supabase SDK failed to load';
+    $('hudLink').textContent='OFFLINE';
+  }
+}
+bootSupabase();
+async function initSupabase(){
+  try{
+    const s=await sb.auth.getSession();session=s.data.session||null;
+    if(!session){const r=await sb.auth.signInAnonymously();if(r.error)throw r.error;session=r.data.session}
+    $('status').textContent='Supabase connected';$('dbState').textContent='Connected';$('hudLink').textContent='ONLINE';setSphereState('idle');await loadMemory()
+  }catch(e){$('status').textContent='Setup needed';$('dbState').textContent=e.message||'Auth setup needed';$('hudLink').textContent='OFFLINE';toast('Enable Anonymous Sign-Ins in Supabase Auth')}
+}
+async function loadMemory(){
+  const list=$('memoryList');try{
+    let data=[];
+    if(sb&&session){const r=await sb.from('memories').select('id,content,created_at').order('created_at',{ascending:false}).limit(50);if(r.error)throw r.error;data=r.data||[]}
+    else data=memories.map((content,i)=>({id:i,content,created_at:new Date().toISOString()}));
+    list.innerHTML='';if(!data.length){list.innerHTML='<div class="muted">No memories yet.</div>';return}
+    for(const m of data){const d=document.createElement('div');d.className='card memoryRow';d.innerHTML='<div>'+esc(m.content)+'</div><div class="muted">'+new Date(m.created_at).toLocaleString()+'</div>';list.appendChild(d)}
+  }catch(e){list.innerHTML='<div class="muted">Memory error: '+esc(e.message)+'</div>'}
+}
+async function remember(q){
+  const content=q.replace(/^remember that/i,'').trim();if(!content)return'Please tell me what to remember.';
+  if(sb&&session){const r=await sb.from('memories').insert({user_id:session.user.id,content});if(r.error)throw r.error}
+  else{memories.push(content);localStorage.setItem('jarvis-memories',JSON.stringify(memories))}
+  return'Saved that to your long-term memory.'
+}
+async function send(text){
+  const q=(text||$('input').value).trim();if(!q)return;$('input').value='';setBusy(true);setSphereState('thinking');
+  history.push({role:'user',content:q});save();render();
+  try{
+    let reply;
+    if(sb&&session){
+      const r=await sb.functions.invoke(cfg.edgeFunction||'chat',{body:{messages:history.slice(-20)}});
+      if(r.error){let detail=r.error.message||String(r.error);try{if(r.error.context){const body=await r.error.context.json();if(body?.error)detail=body.error}}catch{}throw new Error(detail)}
+      reply=r.data?.message||'No response received.'
+    }else if(/^remember that/i.test(q))reply=await remember(q);
+    else reply=demo(q);
+    history.push({role:'assistant',content:reply});save();render();if(voiceEnabled)speakJarvis(reply);else{setSphereState('speaking');setTimeout(()=>setSphereState('idle'),900)}
+  }catch(e){
+    history.push({role:'assistant',content:'I hit an error: '+(e.message||e)});save();render();setSphereState('idle')
+  }finally{setBusy(false)}
+}
+function demo(q){
+  const l=q.toLowerCase();
+  if(l.includes('what should we build next'))return'Next: Supabase Auth + persistent memory, then web search, then browser automation, then permissioned PC control.';
+  if(l.includes('plan my ai project'))return'Build in layers: website → Supabase memory/auth → live AI → web search → browser automation → PC control.';
+  return'I am in local demo mode. Connect the Supabase project and Edge Function to activate the live AI brain.'
+}
+function setBusy(b){$('send').disabled=b;$('send').textContent=b?'…':'Send';$('input').disabled=b}
+function save(){localStorage.setItem('jarvis-history',JSON.stringify(history.slice(-40)))}
+function render(){
+  const el=$('messages');el.innerHTML='';$('welcome').classList.toggle('hidden',history.length>0);
+  for(const m of history){const w=document.createElement('div');w.className='msg '+m.role;const l=document.createElement('div');l.className='label';l.textContent=m.role==='user'?'YOU':'JARVIS';const b=document.createElement('div');b.className='bubble';b.textContent=m.content;w.append(l,b);el.appendChild(w)}
+  $('scroll').scrollTop=$('scroll').scrollHeight
+}
+function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2500)}
+$('form').onsubmit=e=>{e.preventDefault();send()};
+$('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+$('clear').onclick=()=>{history=[];save();render()};$('newChat').onclick=()=>{history=[];save();render();$('input').focus()};
+document.querySelectorAll('.start button').forEach(b=>b.onclick=()=>send(b.textContent));
+const views={chat:['chatView','Command Center'],memory:['memoryView','Long-term Memory'],system:['systemView','System']};
+document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  for(const [id] of Object.values(views))$(id).classList.add('hidden');
+  const [id,t]=views[b.dataset.view];$(id).classList.remove('hidden');$('title').textContent=t;
+  if(b.dataset.view==='memory')loadMemory()
+});
+$('clearMemory').onclick=async()=>{
+  if(sb&&session){const r=await sb.from('memories').delete().eq('user_id',session.user.id);if(r.error)toast(r.error.message)}
+  else{memories=[];localStorage.setItem('jarvis-memories','[]')}
+  loadMemory();toast('Memory cleared')
+};
+$('voiceToggle').onclick=()=>{voiceEnabled=!voiceEnabled;localStorage.setItem('jarvis-voice',voiceEnabled?'on':'off');if(!voiceEnabled&&synth)synth.cancel();syncVoiceButton();toast(voiceEnabled?'JARVIS voice enabled':'JARVIS voice muted')};syncVoiceButton();
+
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recognizer=null,voiceMode=localStorage.getItem('jarvis-voice-mode')==='on',voiceStarting=false;
+
+function syncVoiceModeButton(){
+  const b=$('voiceModeToggle');
+  b.textContent=voiceMode?'🎧 Voice Mode ON':'🎧 Voice Mode';
+  b.classList.toggle('voiceModeOn',voiceMode);
+  $('voiceBadge').style.display=voiceMode?'inline':'none';
+}
+function startVoiceListening(){
+  if(!recognizer||!voiceMode||voiceStarting||uiState==='thinking'||uiState==='speaking')return;
+  try{voiceStarting=true;recognizer.start()}catch{}finally{setTimeout(()=>voiceStarting=false,250)}
+}
+function stopVoiceListening(){
+  if(!recognizer)return;
+  try{recognizer.stop()}catch{}
+}
+function enableVoiceMode(){
+  if(!recognizer){toast('Voice Mode is not supported in this browser');return}
+  voiceMode=true;localStorage.setItem('jarvis-voice-mode','on');voiceEnabled=true;localStorage.setItem('jarvis-voice','on');
+  syncVoiceButton();syncVoiceModeButton();toast('JARVIS Voice Mode activated');startVoiceListening();
+}
+function disableVoiceMode(){
+  voiceMode=false;localStorage.setItem('jarvis-voice-mode','off');stopVoiceListening();if(synth)synth.cancel();
+  setSphereState('idle');syncVoiceModeButton();toast('JARVIS Voice Mode stopped');
+}
+
+if(SR){
+  recognizer=new SR();recognizer.lang='en-US';recognizer.continuous=true;recognizer.interimResults=false;recognizer.maxAlternatives=1;
+  recognizer.onstart=()=>{voiceStarting=false;if(voiceMode){setSphereState('listening');$('mode').textContent='Voice mode • listening…'}};
+  recognizer.onend=()=>{voiceStarting=false;if(voiceMode&&!synth?.speaking){setSphereState('idle');setTimeout(startVoiceListening,350)}};
+  recognizer.onerror=e=>{
+    voiceStarting=false;
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){voiceMode=false;localStorage.setItem('jarvis-voice-mode','off');syncVoiceModeButton();toast('Microphone permission is required for Voice Mode')}
+    else if(voiceMode)setTimeout(startVoiceListening,700)
+  };
+  recognizer.onresult=e=>{
+    const last=e.results?.[e.results.length-1];
+    const t=last?.[0]?.transcript?.trim()||'';
+    if(t&&last?.isFinal){stopVoiceListening();send(t)}
+  };
+  $('mic').onclick=()=>{voiceMode?disableVoiceMode():enableVoiceMode()};
+  $('voiceModeToggle').onclick=()=>{voiceMode?disableVoiceMode():enableVoiceMode()};
+}else{
+  $('mic').disabled=true;$('voiceModeToggle').disabled=true;
+}
+syncVoiceModeButton();
+render();
+</script>
+</body>
+</html>
