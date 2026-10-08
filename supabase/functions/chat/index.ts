@@ -75,7 +75,9 @@ Deno.serve(async (req: Request) => {
         role: "system",
         content:
           "You are JARVIS, a helpful personal AI assistant. Be concise and honest. " +
-          "Never claim to have performed actions that were not performed." +
+          "Never claim to have performed actions that were not performed. " +
+          "Use web search when the user asks for current, recent, live, changing, or externally verifiable information. " +
+          "When you use web search, include concise source links/citations in your answer where useful." +
           memoryText
       },
       ...messages
@@ -92,6 +94,16 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         model: Deno.env.get("OPENROUTER_MODEL") || "openrouter/auto",
         messages: inputMessages,
+        tools: [
+          {
+            type: "openrouter:web_search",
+            parameters: {
+              engine: "auto",
+              max_results: 5,
+              max_total_results: 10
+            }
+          }
+        ],
         max_tokens: 700
       })
     });
@@ -106,7 +118,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const message = data?.choices?.[0]?.message?.content;
-    return reply({ message: message || "No text response received." });
+    return reply({
+      message: message || "No text response received.",
+      web_search_used: Boolean(
+        data?.choices?.[0]?.message?.tool_calls?.length ||
+        JSON.stringify(data).includes("openrouter:web_search")
+      )
+    });
   } catch (e) {
     return reply(
       { error: e instanceof Error ? e.message : "Unexpected server error." },
