@@ -285,7 +285,7 @@ function pickJarvisVoice(){
 function speakJarvis(text){
   if(!voiceEnabled||!synth||!text)return;
   synth.cancel();
-  const clean=String(text).replace(/[#*_~`]/g,'').replace(/https?:\\/\\/\\S+/g,'').trim();
+  const clean=String(text).replace(/[#*_~`]/g,'').replace(/https?:\/\/\S+/g,'').trim();
   if(!clean)return;
   const u=new SpeechSynthesisUtterance(clean);
   u.voice=pickJarvisVoice();
