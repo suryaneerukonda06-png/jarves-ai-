@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#05070b"><title>JARVIS — Personal AI</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   color-scheme:dark;
@@ -215,8 +214,9 @@ main{min-width:0;display:flex;flex-direction:column}
 </div>
 <div class="toast" id="toast"></div>
 
-<script>window.JARVIS_CONFIG=window.JARVIS_CONFIG||{supabaseUrl:"https://lgfhywtphebtzntidhof.supabase.co",supabasePublishableKey:"sb_publishable_dM6YhGhb3nqajlKMFEN2Iw_cKZ9Nbvs",edgeFunction:"chat"};</script><script src="../config.js?v=20"></script>
-<script>
+<script>window.JARVIS_CONFIG=window.JARVIS_CONFIG||{supabaseUrl:"https://lgfhywtphebtzntidhof.supabase.co",supabasePublishableKey:"sb_publishable_dM6YhGhb3nqajlKMFEN2Iw_cKZ9Nbvs",edgeFunction:"chat"};</script><script src="../config.js?v=21"></script>
+<script type="module">
+import { createClient as supabaseCreateClient } from "https://esm.sh/@supabase/supabase-js@2";
 const $=id=>document.getElementById(id),cfg=window.JARVIS_CONFIG||{};
 $('status').textContent='Connecting…';
 $('mode').textContent='Connecting to Supabase…';
@@ -338,13 +338,7 @@ async function bootSupabase(){
     return;
   }
   try{
-    let createClient=window.supabase?.createClient;
-    if(!createClient){
-      const mod=await import('https://esm.sh/@supabase/supabase-js@2');
-      createClient=mod.createClient;
-    }
-    if(!createClient)throw new Error('Supabase SDK failed to load.');
-    sb=createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
+    sb=supabaseCreateClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
     await initSupabase();
   }catch(e){
     console.error('Supabase boot failed:',e);
