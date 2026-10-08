@@ -1,0 +1,13 @@
+<!doctype html>
+<html><body style="font:20px system-ui;padding:30px">
+<div id="status">Checking Supabase SDK…</div>
+<script>
+const s=document.getElementById('status');
+setTimeout(()=>{s.textContent=window.supabase&&typeof window.supabase.createClient==='function'?'SDK OK':'SDK MISSING'},5000);
+window.addEventListener('error',e=>{if(e.message)s.textContent='ERROR: '+e.message});
+</script>
+<script async
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"
+  onload="document.getElementById('status').textContent='SDK SCRIPT LOADED'"
+  onerror="document.getElementById('status').textContent='SDK SCRIPT FAILED'"></script>
+</body></html>
