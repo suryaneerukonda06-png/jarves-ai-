@@ -7,5 +7,5 @@ window.JARVIS_CONFIG = {
 // The main app expects window.supabase before its startup code runs.
 // Force-load the UMD build synchronously during HTML parsing when needed.
 if (!window.supabase && document?.write) {
-  document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
 }
