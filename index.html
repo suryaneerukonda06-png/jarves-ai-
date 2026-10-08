@@ -207,7 +207,7 @@ main{min-width:0;display:flex;flex-direction:column}
   <div class="panel">
     <div class="card"><b>Website</b><div class="muted">GitHub Pages-ready static app</div></div>
     <div class="card"><b>Database</b><div class="muted" id="dbState">Not connected</div></div>
-    <div class="card"><b>AI</b><div class="muted">Supabase Edge Function + OpenRouter</div></div>
+    <div class="card"><b>AI</b><div class="muted">Supabase Edge Function + OpenRouter + Tool Calling</div></div>
     <div class="card"><b>PC control</b><div class="muted">Not connected yet — will be added later with explicit permissions.</div></div>
   </div>
 </section>
@@ -215,7 +215,7 @@ main{min-width:0;display:flex;flex-direction:column}
 </div>
 <div class="toast" id="toast"></div>
 
-<script>window.JARVIS_CONFIG=window.JARVIS_CONFIG||{supabaseUrl:"https://lgfhywtphebtzntidhof.supabase.co",supabasePublishableKey:"sb_publishable_dM6YhGhb3nqajlKMFEN2Iw_cKZ9Nbvs",edgeFunction:"chat"};</script><script src="./config.js?v=18"></script>
+<script>window.JARVIS_CONFIG=window.JARVIS_CONFIG||{supabaseUrl:"https://lgfhywtphebtzntidhof.supabase.co",supabasePublishableKey:"sb_publishable_dM6YhGhb3nqajlKMFEN2Iw_cKZ9Nbvs",edgeFunction:"chat"};</script><script src="./config.js?v=19"></script>
 <script>
 const $=id=>document.getElementById(id),cfg=window.JARVIS_CONFIG||{};
 let history=JSON.parse(localStorage.getItem('jarvis-history')||'[]'),
@@ -358,12 +358,12 @@ async function send(text){
   history.push({role:'user',content:q});save();render();
   try{
     let reply;
-    if(/^remember that/i.test(q))reply=await remember(q);
-    else if(sb&&session){
+    if(sb&&session){
       const r=await sb.functions.invoke(cfg.edgeFunction||'chat',{body:{messages:history.slice(-20)}});
       if(r.error){let detail=r.error.message||String(r.error);try{if(r.error.context){const body=await r.error.context.json();if(body?.error)detail=body.error}}catch{}throw new Error(detail)}
       reply=r.data?.message||'No response received.'
-    }else reply=demo(q);
+    }else if(/^remember that/i.test(q))reply=await remember(q);
+    else reply=demo(q);
     history.push({role:'assistant',content:reply});save();render();if(voiceEnabled)speakJarvis(reply);else{setSphereState('speaking');setTimeout(()=>setSphereState('idle'),900)}
   }catch(e){
     history.push({role:'assistant',content:'I hit an error: '+(e.message||e)});save();render();setSphereState('idle')
